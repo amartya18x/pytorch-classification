@@ -21,6 +21,11 @@ import torchvision.datasets as datasets
 import models.cifar as models
 
 from utils import Bar, Logger, AverageMeter, accuracy, mkdir_p, savefig
+try:
+    from tensorboardX import SummaryWriter
+except ImportError:
+    raise RuntimeError(
+        "No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
 
 
 model_names = sorted(name for name in models.__dict__
@@ -212,6 +217,9 @@ def main():
         print(' Test Loss:  %.8f, Test Acc:  %.2f' % (test_loss, test_acc))
         return
 
+    writer = SummaryWriter(
+        logdir="tensorboard_logs/" + "bearpaw" + args.checkpoint + title
+    )
     # Train and val
     for epoch in range(start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch)
@@ -223,7 +231,18 @@ def main():
             trainloader, model, criterion, optimizer, epoch, use_cuda)
         test_loss, test_acc = test(
             testloader, model, criterion, epoch, use_cuda)
-
+        writer.add_scalar("training/loss",
+                          train_loss,
+                          epoch)
+        writer.add_scalar("training/accuracy",
+                          train_acc,
+                          epoch)
+        writer.add_scalar("test/loss",
+                          test_loss,
+                          epoch)
+        writer.add_scalar("test/accuracy",
+                          test_acc,
+                          epoch)
         # append logger file
         logger.append([state['lr'], train_loss,
                        test_loss, train_acc, test_acc])
